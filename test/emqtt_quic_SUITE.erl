@@ -15,8 +15,8 @@
 %%--------------------------------------------------------------------
 -module(emqtt_quic_SUITE).
 
--compile(export_all).
 -compile(nowarn_export_all).
+-compile(export_all).
 
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("common_test/include/ct.hrl").

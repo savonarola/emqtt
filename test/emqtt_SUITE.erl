@@ -16,8 +16,8 @@
 
 -module(emqtt_SUITE).
 
--compile(export_all).
 -compile(nowarn_export_all).
+-compile(export_all).
 
 -import(lists, [nth/2]).
 
@@ -32,6 +32,8 @@
 
 -define(WILD_TOPICS, [<<"TopicA/+">>, <<"+/C">>, <<"#">>, <<"/#">>, <<"/+">>,
                       <<"+/+">>, <<"TopicA/#">>]).
+
+-define(HOSTS, [<<"127.0.0.1">>, "127.0.0.1", {127, 0, 0, 1}]).
 
 -define(WAIT(Pattern, Result),
         receive
@@ -58,13 +60,14 @@ all() ->
     , {group, mqttv5}
     , {group, quic}
     , {group, general}
+    , {group, ws}
     ].
 
 groups() ->
     [{general, [],
       [t_connect,
+       t_connect_explicit_host,
        t_connect_timeout,
-       t_ws_connect,
        t_subscribe,
        t_subscribe_qoe,
        t_publish,
@@ -93,6 +96,8 @@ groups() ->
        t_pause_resume,
        t_init,
        t_connected]},
+    {ws, [],
+        [t_ws_connect]},
     {mqttv3,[],
       [basic_test_v3]},
     {mqttv4, [],
@@ -201,6 +206,18 @@ t_connect(Config) ->
     {ok, _} = emqtt:ConnFun(C2),
     ct:pal("C2 is connected ~p", [C2]),
     ok= emqtt:disconnect(C2).
+
+t_connect_explicit_host(Config) ->
+    ConnFun = ?config(conn_fun, Config),
+    Port = ?config(port, Config),
+    lists:foreach(
+      fun(Host) ->
+        {ok, C} = emqtt:start_link([{host, Host}, {port, Port}]),
+        {ok, _} = emqtt:ConnFun(C),
+        ct:pal("C is connected ~p", [C]),
+        ok= emqtt:disconnect(C)
+      end,
+      ?HOSTS).
 
 t_connect_timeout(Config) ->
     ConnFun = ?config(conn_fun, Config),
@@ -408,9 +425,13 @@ test_reconnect_immediate_retry(Config) ->
     ok = emqtt:disconnect(C).
 
 t_ws_connect(_) ->
-    {ok, C} = emqtt:start_link([{clean_start, true}, {host,"127.0.0.1"}, {port, 8083}]),
-    {ok, _} = emqtt:ws_connect(C),
-    ok = emqtt:disconnect(C).
+    lists:foreach(
+      fun(Host) ->
+        {ok, C} = emqtt:start_link([{clean_start, true}, {host, Host}, {port, 8083}]),
+        {ok, _} = emqtt:ws_connect(C),
+        ok = emqtt:disconnect(C)
+      end,
+      ?HOSTS).
 
 t_subscribe(Config) ->
     ConnFun = ?config(conn_fun, Config),

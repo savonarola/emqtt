@@ -16,8 +16,8 @@
 
 -module(emqtt_props_SUITE).
 
--compile(export_all).
 -compile(nowarn_export_all).
+-compile(export_all).
 
 -include("emqtt.hrl").
 -include_lib("eunit/include/eunit.hrl").

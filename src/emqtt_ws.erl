@@ -35,14 +35,15 @@
 
 -define(WS_HEADERS, [{"cache-control", "no-cache"}]).
 
-connect(Host, Port, Opts, Timeout) ->
+connect(Host0, Port, Opts, Timeout) ->
+    Host1 = convert_host(Host0),
     {ok, _} = application:ensure_all_started(gun),
     %% 1. open connection
     ConnOpts = #{connect_timeout => Timeout,
                  retry => 3,
                  retry_timeout => 30000
                 },
-    case gun:open(Host, Port, ConnOpts) of
+    case gun:open(Host1, Port, ConnOpts) of
         {ok, ConnPid} ->
             {ok, _} = gun:await_up(ConnPid, Timeout),
             case upgrade(ConnPid, Opts, Timeout) of
@@ -84,4 +85,9 @@ send(WsPid, Data) ->
 close(WsPid) ->
     gun:shutdown(WsPid).
 
-
+-spec convert_host(inet:ip_address() | inet:hostname()) -> inet:hostname().
+convert_host(Host) ->
+    case inet:is_ip_address(Host) of
+        true -> inet:ntoa(Host);
+        false -> Host
+    end.
