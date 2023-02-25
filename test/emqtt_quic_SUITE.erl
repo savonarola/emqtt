@@ -976,4 +976,4 @@ calc_pkt_id(2, Id)->
 start_emqx_quic(UdpPort) ->
     emqtt_test_lib:start_emqx(),
     application:ensure_all_started(quicer),
-    ok = emqx_common_test_helpers:ensure_quic_listener(mqtt, UdpPort).
+    ok = emqtt_test_lib:ensure_quic_listener(mqtt, UdpPort).

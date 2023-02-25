@@ -33,7 +33,15 @@
 -define(WILD_TOPICS, [<<"TopicA/+">>, <<"+/C">>, <<"#">>, <<"/#">>, <<"/+">>,
                       <<"+/+">>, <<"TopicA/#">>]).
 
--define(HOSTS, [<<"127.0.0.1">>, "127.0.0.1", {127, 0, 0, 1}]).
+-define(HOSTS, 
+        [
+         {<<"127.0.0.1">>, []},
+         {"127.0.0.1", []}, 
+         {{127, 0, 0, 1}, []}, 
+         {"::1", [{tcp_module, inet6_tcp}]}, 
+         {<<"::1">>, [{tcp_module, inet6_tcp}]},
+         {{0, 0, 0, 0, 0, 0, 0, 1}, []}
+        ]).
 
 -define(WAIT(Pattern, Result),
         receive
@@ -132,7 +140,7 @@ end_per_suite(_Config) ->
     emqtt_test_lib:stop_emqx().
 
 init_per_testcase(_TC, Config) ->
-    ok = emqx_common_test_helpers:ensure_quic_listener(mqtt, 14567),
+    ok = emqtt_test_lib:ensure_quic_listener(mqtt, 14567),
     Config.
 
 end_per_testcase(TC, _Config)
@@ -211,10 +219,11 @@ t_connect_explicit_host(Config) ->
     ConnFun = ?config(conn_fun, Config),
     Port = ?config(port, Config),
     lists:foreach(
-      fun(Host) ->
-        {ok, C} = emqtt:start_link([{host, Host}, {port, Port}]),
+      fun({Host, TcpOpts}) ->
+        ct:pal("Connecting to ~p:~p via ~p", [Host, Port, ConnFun]),
+        {ok, C} = emqtt:start_link([{host, Host}, {port, Port}, {tcp_opts, TcpOpts}]),
         {ok, _} = emqtt:ConnFun(C),
-        ct:pal("C is connected ~p", [C]),
+        ct:pal("Connected to ~p:~p via ~p", [Host, Port, ConnFun]),
         ok= emqtt:disconnect(C)
       end,
       ?HOSTS).
@@ -425,10 +434,13 @@ test_reconnect_immediate_retry(Config) ->
     ok = emqtt:disconnect(C).
 
 t_ws_connect(_) ->
+    Port = 8083,
     lists:foreach(
-      fun(Host) ->
-        {ok, C} = emqtt:start_link([{clean_start, true}, {host, Host}, {port, 8083}]),
+      fun({Host, TcpOpts}) ->
+        ct:pal("Connecting to ~p:~p via ~p", [Host, Port, ws_connect]),
+        {ok, C} = emqtt:start_link([{clean_start, true}, {host, Host}, {port, Port}, {tcp_opts, TcpOpts}]),
         {ok, _} = emqtt:ws_connect(C),
+        ct:pal("Connected to ~p:~p via ~p", [Host, Port, ws_connect]),
         ok = emqtt:disconnect(C)
       end,
       ?HOSTS).

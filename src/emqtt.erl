@@ -940,6 +940,8 @@ do_connect(ConnMod, #state{sock_opts = SockOpts,
                            connect_timeout = Timeout} = State) ->
     State0 = maybe_init_quic_state(ConnMod, State),
     IsConnOpened = proplists:is_defined(handle, SockOpts),
+    ct:print("sock_connect: ~p", [[ConnMod, hosts(State0), SockOpts, Timeout]]),
+    ct:print("st: ~p", [State]),
     case sock_connect(ConnMod, hosts(State0), SockOpts, Timeout) of
         skip ->
             {ok, State0};

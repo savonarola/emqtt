@@ -37,11 +37,13 @@
 
 connect(Host0, Port, Opts, Timeout) ->
     Host1 = convert_host(Host0),
+    ct:print("Host converted ~p -> ~p", [Host0, Host1]),
     {ok, _} = application:ensure_all_started(gun),
     %% 1. open connection
     ConnOpts = #{connect_timeout => Timeout,
                  retry => 3,
-                 retry_timeout => 30000
+                 retry_timeout => 30000,
+                 tcp_opts => Opts
                 },
     case gun:open(Host1, Port, ConnOpts) of
         {ok, ConnPid} ->
@@ -87,7 +89,9 @@ close(WsPid) ->
 
 -spec convert_host(inet:ip_address() | inet:hostname()) -> inet:hostname().
 convert_host(Host) ->
-    case inet:is_ip_address(Host) of
-        true -> inet:ntoa(Host);
-        false -> Host
+    case Host of
+        %% ip4
+        Ip4 when is_tuple(Ip4) andalso tuple_size(Ip4) =:= 4 -> inet:ntoa(Host);
+        Ip6 when is_tuple(Ip6) andalso tuple_size(Ip6) =:= 8 -> inet:ntoa(Host);
+        _ -> Host
     end.
